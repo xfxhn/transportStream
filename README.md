@@ -1,0 +1,2 @@
+# transportStream
+对ts的封装和解封装，并且能够根据IDR切成多个ts片，然后生成m3u8索引文件
