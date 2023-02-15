@@ -1,0 +1,41 @@
+
+
+首先初始化
+CLIENT_SEQUENCE = -1
+
+第一次去请求m3u8索引文件，那么不管SERVER_SEQUENCE是多少，我们一个都没读过，
+客户端正常请求这个索引文件里的ts文件，然后把SERVER_SEQUENCE赋值给CLIENT_SEQUENCE(假如SERVER_SEQUENCE=0)
+
+第二次去请求索引文件，发现SERVER_SEQUENCE=1了，SERVER_SEQUENCE - CLIENT_SEQUENCE = 1
+那么表示服务端更新了这个索引文件，并且滑动窗口往下移动一格，理解为一个先进先出的栈，这个栈的容量为3
+= 1表示有个新的ts进来了，那么客户端就要去请求这个新的ts文件，(同理如果 SERVER_SEQUENCE - CLIENT_SEQUENCE = 2的话，表示有两个新的ts进来了)
+然后给CLIENT_SEQUENCE赋值为SERVER_SEQUENCE = 1，
+1.
+第三次去请求索引文件，发现SERVER_SEQUENCE=2了，SERVER_SEQUENCE(2) - CLIENT_SEQUENCE(1) = 1,
+那么表示又有一个新的ts加进来了。客户端做对应操作，CLIENT_SEQUENCE=SERVER_SEQUENCE
+2.
+第三次去请求索引文件，发现SERVER_SEQUENCE=3了，SERVER_SEQUENCE(3) - CLIENT_SEQUENCE(1) = 2,
+那么表示又有两个新的ts加进来了。客户端做对应操作，CLIENT_SEQUENCE=SERVER_SEQUENCE
+3.
+第三次去请求索引文件，发现SERVER_SEQUENCE=1了，SERVER_SEQUENCE(1) - CLIENT_SEQUENCE(1) = 0,
+那么表示没有服务端没有更新索引文件，不做操作，继续请求索引文件，CLIENT_SEQUENCE=SERVER_SEQUENCE
+4.
+第三次去请求索引文件，发现SERVER_SEQUENCE=5了，SERVER_SEQUENCE(5) - CLIENT_SEQUENCE(1) = 4,
+那么表示又有四个新的ts加进来了。客户端做对应操作，CLIENT_SEQUENCE=SERVER_SEQUENCE
+但是假如这个文件里只有3个ts文件的路径，那么没办法，只能从这个索引文件第一个ts里正常播放，
+这就像你半路进的直播间，SERVER_SEQUENCE=100了，相当于少读了100个ts文件，前面的内容没看到，错过也就错过了~
+
+所以这里涉及一个请求m3u8索引文件，时间间隔的问题，你隔很久才去请求一次这个索引文件，那么就是跳着看的
+画面不连续，太频繁也不行，可能你请求十次，其中有八次索引文件都没更新，那么就是没意义的。
+理想情况下，你的索引文件存储三个ts文件，每个ts文件5秒钟，不考虑延迟，还有网络波动，
+那么你刚播放完这15秒，服务端正常更新了三次索引文件，你每次都正好拿到全新的三个ts文件~ 所以请求间隔请酌情处理，
+而正因为有网络波动的存在，你的索引文件，虽然只保存最新的三个ts文件，但是有可能用户请求这个m3u8这个索引文件的时候，
+他网络差，隔了很久才拿到这个文件，但是你的服务端，已经实时更新几次次这个索引文件了，老的ts文件早被服务端给删掉了，
+而这个用户好不容易拿到这个索引文件，刚准备根据上面的路径去请求ts文件，发现没了，这也是不行的，所以不要立马删除旧的
+ts文件，要预防这种情况的出现。这是我看ZLMediaKit的时候，他的索引文件只有最新的三个ts文件，但是实际上一直保存着十来个的ts文件
+
+以上全是我自己总结而来，不保证是对的
+
+
+
+
