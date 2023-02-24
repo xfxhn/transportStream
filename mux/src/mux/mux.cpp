@@ -2,6 +2,7 @@
 #include "mux.h"
 
 #include <string>
+#include <utility>
 #include "readStream.h"
 #include "writeStream.h"
 
@@ -17,10 +18,15 @@ enum NalUintType {
     H264_NAL_PPS = 8
 };
 
-int Mux::init(const char *filename) {
-    fs.open("mux/resource/bbb/test0.ts", std::ios::binary | std::ios::out | std::ios::trunc);
+int Mux::init(std::string name) {
+    dir = std::move(name);
+
+
+    std::string filename = dir + std::to_string(num++) + ".ts";
+
+    fs.open(filename, std::ios::binary | std::ios::out | std::ios::trunc);
     if (!fs.is_open()) {
-        fprintf(stderr, "cloud not open %s\n", filename);
+        fprintf(stderr, "cloud not open %s\n", filename.c_str());
         return -1;
     }
     buffer = new uint8_t[TRANSPORT_STREAM_PACKETS_SIZE];
@@ -63,8 +69,8 @@ int Mux::start() {
     NALPicture *picture = gop.dpb[0];
     AdtsHeader header;
 
-    int num = 0;
-    std::string name = "mux/resource/bbb/test";
+    //int num = 0;
+    //std::string name = "mux/resource/bbb/test";
     while (videoFlag || audioFlag) {
 
         /*如果有视频，但是没音频，就算视频pts大于音频pts也要去取视频*/
@@ -76,9 +82,9 @@ int Mux::start() {
             /*获取到视频是idr帧的时候才会去切片*/
             if (picture->duration >= 10 && picture->sliceHeader.nalu.IdrPicFlag) {
                 fs.close();
-                fs.open(name + std::to_string(++num) + ".ts", std::ios::binary | std::ios::out | std::ios::trunc);
+                fs.open(dir + std::to_string(num++) + ".ts", std::ios::binary | std::ios::out | std::ios::trunc);
                 if (!fs.is_open()) {
-                    fprintf(stderr, "cloud not open %s\n", (name + std::to_string(num) + ".ts").c_str());
+                    fprintf(stderr, "cloud not open %s\n", (dir + std::to_string(num) + ".ts").c_str());
                     return -1;
                 }
                 writeTable(ts, ws);

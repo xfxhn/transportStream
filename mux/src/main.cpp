@@ -5,7 +5,8 @@
 int main() {
     int ret;
     Mux mux;
-    ret = mux.init("mux/resource/test.ts");
+    /*这里传入你要输出的ts文件的目录的名称  比如test/,比如mux/resource/bbb/*/
+    ret = mux.init("mux/resource/bbb/");
     if (ret < 0) {
         fprintf(stderr, "init failed\n");
         return ret;

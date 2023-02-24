@@ -21,6 +21,10 @@ class WriteStream;
 class Mux {
 
 private:
+    /*切片数量*/
+    int num{0};
+    std::string dir;
+
     NALReader videoReader;
     NALHeader nalUnitHeader;
     NALDecodedPictureBuffer gop;
@@ -44,7 +48,7 @@ private:
 
     bool finishFlag{false};
 public:
-    int init(const char *filename);
+    int init(std::string filename);
 
     int initAudio(const char *filename);
 
